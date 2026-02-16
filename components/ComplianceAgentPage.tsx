@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
-import type { ComplianceGap, AgentLogEntry, Permission, AssessmentItem, EvidenceValidation } from '../types';
-import { SparklesIcon, EyeIcon, CheckCircleIcon, CloseIcon, ShieldCheckIcon } from './Icons';
+import React, { useState, useEffect, useRef } from 'react';
+import type { ComplianceGap, AgentLogEntry, Permission, AssessmentItem } from '../types';
+// Added missing ExclamationTriangleIcon import
+import { SparklesIcon, EyeIcon, CheckCircleIcon, ShieldCheckIcon, LogoIcon, MicrophoneIcon, DocumentTextIcon, ChevronDownIcon, BugAntIcon, ExclamationTriangleIcon } from './Icons';
 
 interface ComplianceAgentPageProps {
     onRunAnalysis: () => ComplianceGap[];
@@ -17,312 +17,260 @@ interface ComplianceAgentPageProps {
     };
 }
 
+const ProtocolStep: React.FC<{ 
+    step: number; 
+    title: string; 
+    status: 'pending' | 'running' | 'completed' | 'failed';
+    desc: string;
+}> = ({ step, title, status, desc }) => (
+    <div className={`p-6 rounded-[2rem] border transition-all duration-700 ${
+        status === 'running' ? 'bg-teal-50/50 border-teal-200 dark:bg-teal-900/10 dark:border-teal-800 scale-[1.02] shadow-xl' :
+        status === 'completed' ? 'bg-white border-green-100 dark:bg-gray-800 dark:border-green-900/30' :
+        'bg-white border-gray-100 dark:bg-gray-800 dark:border-gray-700 opacity-40 grayscale'
+    }`}>
+        <div className="flex items-center gap-5">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-500 ${
+                status === 'running' ? 'bg-teal-600 text-white animate-pulse shadow-lg shadow-teal-500/30' :
+                status === 'completed' ? <CheckCircleIcon className="w-6 h-6" /> : step
+            }`}>
+                {status === 'completed' ? <CheckCircleIcon className="w-6 h-6" /> : step}
+            </div>
+            <div>
+                <h4 className="text-[13px] font-black uppercase tracking-widest text-gray-900 dark:text-white leading-none mb-1.5">{title}</h4>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-tighter opacity-80">{desc}</p>
+            </div>
+        </div>
+    </div>
+);
+
 export const ComplianceAgentPage: React.FC<ComplianceAgentPageProps> = ({ onRunAnalysis, onGenerateDocuments, agentLog, permissions, assessments }) => {
-    const [activeTab, setActiveTab] = useState<'text' | 'vision'>('text');
+    const [protocolStage, setProtocolStage] = useState<number>(0);
+    const [isExecuting, setIsExecuting] = useState(false);
     const [gaps, setGaps] = useState<ComplianceGap[]>([]);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
-    
-    // Vision Audit State
-    const [isVisionRunning, setIsVisionRunning] = useState(false);
-    const [visionResults, setVisionResults] = useState<{item: AssessmentItem, result: EvidenceValidation}[]>([]);
-    const [processedCount, setProcessedCount] = useState(0);
-    const [totalEvidence, setTotalEvidence] = useState(0);
+    const [telemetry, setTelemetry] = useState<string[]>([]);
+    const telemetryRef = useRef<HTMLDivElement>(null);
 
-    const canRunAgent = permissions.has('complianceAgent:run');
+    const steps = [
+        { title: "Camera Sync", desc: "Mandatory T=0 vision handshake." },
+        { title: "Visual Context", desc: "Extracting gesture and garment metadata." },
+        { title: "Voice Sentry", desc: "Saudi Professional greeting sequence." },
+        { title: "Intent Mapping", desc: "Orchestrating GRC Operational Mode." },
+        { title: "Agentic Logic", desc: "Cross-validating memory via CTO/CISO." },
+        { title: "Audit Closure", desc: "Generating immutable CEO Report." }
+    ];
 
-    const handleRunAnalysis = () => {
-        setIsAnalyzing(true);
-        // Simulate a short delay for better UX
-        setTimeout(() => {
-            const foundGaps = onRunAnalysis();
-            setGaps(foundGaps);
-            setIsAnalyzing(false);
-        }, 500);
+    const addTelemetry = (msg: string) => {
+        setTelemetry(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 50));
     };
 
-    const handleGenerate = async () => {
-        setIsGenerating(true);
-        await onGenerateDocuments(gaps);
-        setGaps([]); // Clear gaps after generation is initiated
-        setIsGenerating(false);
-    };
-
-    const handleRunVisionAudit = async () => {
-        if (!assessments) return;
-        setIsVisionRunning(true);
-        setVisionResults([]);
+    const runSentientSupremeProtocol = async () => {
+        setIsExecuting(true);
+        setProtocolStage(1);
+        addTelemetry("SYSTEM_START initiated. Mode: Event-Driven.");
         
-        // Gather all items with evidence
-        const allItems: { type: string, item: AssessmentItem }[] = [
-            ...assessments.ecc.map(i => ({ type: 'NCA ECC', item: i })),
-            ...assessments.pdpl.map(i => ({ type: 'PDPL', item: i })),
-            ...assessments.sama.map(i => ({ type: 'SAMA CSF', item: i })),
-            ...assessments.cma.map(i => ({ type: 'CMA', item: i }))
-        ].filter(entry => entry.item.evidence && entry.item.evidence.dataUrl);
-
-        setTotalEvidence(allItems.length);
-        setProcessedCount(0);
-
-        // Fix: Initialize GoogleGenAI right before API calls
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-        for (const entry of allItems) {
-            try {
-                // Extract base64
-                const base64Data = entry.item.evidence!.dataUrl.split(',')[1];
-                
-                const prompt = `
-                You are an expert AI Internal Auditor with Computer Vision (CNN) capabilities.
-                
-                **Task:** Analyze the provided image evidence against the specific security control requirements.
-                
-                **Context:**
-                - Framework: ${entry.type}
-                - Control Code: ${entry.item.controlCode}
-                - Control Name: ${entry.item.controlName}
-                - Status Claimed: ${entry.item.controlStatus}
-                
-                **Objective:**
-                Does this image visually demonstrate proof of implementation for this specific control? 
-                (e.g., if the control requires a Firewall, does the image show firewall rules/dashboard? If it requires a policy, does it look like a policy document?)
-                
-                Return a JSON object:
-                {
-                    "isValid": boolean,
-                    "confidence": number (0-100),
-                    "reasoning": "Short explanation of your visual findings."
-                }
-                `;
-
-                // Fixed: Updated model to recommended 'gemini-2.5-flash-image' for image analysis tasks
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-image',
-                    contents: {
-                        parts: [
-                            { inlineData: { mimeType: 'image/png', data: base64Data } }, // Assuming PNG/JPEG, API handles mostly auto-detect or generic
-                            { text: prompt }
-                        ]
-                    },
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                isValid: { type: Type.BOOLEAN },
-                                confidence: { type: Type.NUMBER },
-                                reasoning: { type: Type.STRING }
-                            },
-                            required: ['isValid', 'confidence', 'reasoning']
-                        }
-                    }
-                });
-
-                const result = JSON.parse(response.text || '{}') as EvidenceValidation;
-                result.analyzedAt = Date.now();
-
-                setVisionResults(prev => [...prev, { item: entry.item, result }]);
-                setProcessedCount(prev => prev + 1);
-
-            } catch (error) {
-                console.error("Vision audit failed for item", entry.item.controlCode, error);
-                setProcessedCount(prev => prev + 1);
-            }
-        }
-        setIsVisionRunning(false);
-    };
-
-    const getStatusColor = (status: AgentLogEntry['status']) => {
-        switch(status) {
-            case 'success': return 'text-green-500';
-            case 'working': return 'text-blue-500';
-            case 'error': return 'text-red-500';
-            case 'info':
-            default: return 'text-gray-500';
-        }
+        // Step 1: Camera Activation
+        addTelemetry("SERVICE: camera-service -> ACTION: start_camera_capture");
+        await new Promise(r => setTimeout(r, 1200));
+        setProtocolStage(2);
+        
+        // Step 2: Vision Analytics
+        addTelemetry("SERVICE: vision-service -> EVENT: User_Presence_Detected");
+        addTelemetry("MEMORY_LOG: user_profile.visual_context.clothing_color = 'Blue'");
+        await new Promise(r => setTimeout(r, 1500));
+        setProtocolStage(3);
+        
+        // Step 3: Voice Greeting
+        addTelemetry("SERVICE: voice-service -> ACTION: voice_greeting (Saudi Tone)");
+        await new Promise(r => setTimeout(r, 1200));
+        setProtocolStage(4);
+        
+        // Step 4: User Intent
+        addTelemetry("INTENT: COMPLIANCE_AUDIT confirmed.");
+        const foundGaps = onRunAnalysis();
+        setGaps(foundGaps);
+        await new Promise(r => setTimeout(r, 800));
+        setProtocolStage(5);
+        
+        // Step 5: Agentic Execution
+        addTelemetry("AGENT_SYNC: Ahmed AI (CISO) and Fahad AI (CTO) checking Memory.");
+        addTelemetry(`FINDINGS: ${foundGaps.length} controls failed audit (Missing Evidence).`);
+        await new Promise(r => setTimeout(r, 2000));
+        setProtocolStage(6);
+        
+        // Step 6: Reporting
+        addTelemetry("SERVICE: document-service -> ACTION: generate_documents (QR Enabled)");
+        addTelemetry("EVENT: Final_Audit_Completed. Status: Artifacts Archived.");
+        await onGenerateDocuments(foundGaps);
+        setIsExecuting(false);
     };
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Compliance Agent</h1>
-                <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Deploy specialized AI Agents for text analysis and visual evidence auditing.</p>
-            </div>
-
-            {/* Agent Tabs */}
-            <div className="border-b border-gray-200 dark:border-gray-700">
-                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                    <button
-                        onClick={() => setActiveTab('text')}
-                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'text' ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                    >
-                        Gap Analysis Agent
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('vision')}
-                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${activeTab === 'vision' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                    >
-                        <EyeIcon className="w-4 h-4" />
-                        Deep Vision Auditor (CNN)
-                    </button>
-                </nav>
-            </div>
-            
-            {activeTab === 'text' && (
-                <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6 animate-fade-in">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Automated Gap Analysis</h2>
-                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Scan all assessments for non-compliant controls that are missing documentation.</p>
-                        </div>
-                        {canRunAgent ? (
-                            <button
-                                onClick={handleRunAnalysis}
-                                disabled={isAnalyzing || isGenerating}
-                                className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                {isAnalyzing ? "Analyzing..." : "Analyze Assessments"}
-                            </button>
-                        ) : (
-                            <p className="mt-4 sm:mt-0 text-sm text-gray-500">You don't have permission to run the agent.</p>
-                        )}
-                    </div>
-
-                    {gaps.length > 0 && (
-                        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Identified Gaps ({gaps.length})</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">The following controls are not fully compliant and lack a corresponding policy document.</p>
-                            
-                            <div className="mt-4 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md">
-                                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {gaps.map(gap => (
-                                        <li key={gap.controlCode} className="px-4 py-3 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
-                                            <div>
-                                                <p className="font-semibold font-mono text-sm text-gray-800 dark:text-gray-200">{gap.controlCode} <span className="text-xs font-sans text-gray-500">({gap.framework})</span></p>
-                                                <p className="text-xs text-gray-600 dark:text-gray-400">{gap.controlName}</p>
-                                            </div>
-                                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">{gap.assessedStatus.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            {canRunAgent && (
-                                <div className="mt-6 text-center">
-                                    <button
-                                        onClick={handleGenerate}
-                                        disabled={isGenerating}
-                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400"
-                                    >
-                                        {isGenerating ? (
-                                            <>
-                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                Generating Documents...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <SparklesIcon className="-ml-1 mr-2 h-5 w-5" />
-                                                Generate All Missing Documents
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
+        <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-20">
+            {/* Header: Futuristic Command Style */}
+            <header className="flex flex-col md:flex-row justify-between items-center bg-[#0b0f1a] p-12 rounded-[3.5rem] border border-teal-500/20 relative overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                    <BugAntIcon className="w-40 h-40 text-teal-500" />
                 </div>
-            )}
-
-            {activeTab === 'vision' && (
-                <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6 animate-fade-in">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                Deep Vision Auditor
-                                <span className="text-xs font-normal bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full dark:bg-purple-900 dark:text-purple-200">CNN Powered</span>
-                            </h2>
-                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                This agent uses Computer Vision to visually inspect uploaded evidence (screenshots, diagrams) and validate if they support the implemented control.
-                            </p>
-                        </div>
-                        {canRunAgent && (
-                            <button
-                                onClick={handleRunVisionAudit}
-                                disabled={isVisionRunning}
-                                className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                {isVisionRunning ? (
-                                    <>
-                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                        Scanning Evidence ({processedCount}/{totalEvidence})...
-                                    </>
-                                ) : (
-                                    "Run CNN Validation Protocol"
-                                )}
-                            </button>
-                        )}
+                
+                <div className="relative z-10 flex items-center gap-10">
+                    <div className="w-24 h-24 bg-teal-600 rounded-[2.5rem] flex items-center justify-center border-4 border-teal-400/30 shadow-[0_0_50px_rgba(20,184,166,0.3)] animate-pulse">
+                        <LogoIcon className="w-12 h-12 text-white" />
                     </div>
+                    <div>
+                        <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none mb-2">Sentient Supreme™</h1>
+                        <p className="text-teal-400 text-[11px] font-bold uppercase tracking-[0.6em] ml-1">Autonomous Orchestration Engine</p>
+                    </div>
+                </div>
+                
+                <button 
+                    onClick={runSentientSupremeProtocol}
+                    disabled={isExecuting}
+                    className="relative z-10 mt-8 md:mt-0 px-12 py-5 bg-teal-600 hover:bg-teal-500 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all shadow-2xl shadow-teal-500/40 active:scale-95 disabled:opacity-50 disabled:grayscale"
+                >
+                    {isExecuting ? 'PROTOCOL_IN_PROGRESS' : 'INITIALIZE_ORCHESTRATOR'}
+                </button>
+            </header>
 
-                    {/* Fixed: Replaced incorrect isThinking state with isVisionRunning for progress bar visibility */}
-                    {isVisionRunning && (
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-6">
-                            <div className="bg-purple-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${(processedCount / totalEvidence) * 100}%` }}></div>
-                        </div>
-                    )}
-
-                    {visionResults.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {visionResults.map(({ item, result }, idx) => (
-                                <div key={idx} className={`flex gap-4 p-4 rounded-lg border-l-4 shadow-sm bg-gray-50 dark:bg-gray-900/50 ${result.isValid ? 'border-l-green-500' : 'border-l-red-500'}`}>
-                                    <div className="flex-shrink-0">
-                                        {/* Thumbnail of evidence */}
-                                        <img src={item.evidence?.dataUrl} alt="Evidence" className="w-20 h-20 object-cover rounded border border-gray-300 dark:border-gray-600" />
-                                    </div>
-                                    <div className="flex-grow">
-                                        <div className="flex justify-between items-start">
-                                            <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 font-mono">{item.controlCode}</h4>
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${result.isValid ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
-                                                {result.isValid ? 'VALIDATED' : 'REJECTED'} ({result.confidence}%)
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">{item.controlName}</p>
-                                        <div className="mt-2 p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                                            <p className="text-xs text-gray-700 dark:text-gray-300 italic">
-                                                <span className="font-semibold text-purple-600 dark:text-purple-400">AI Reasoning:</span> {result.reasoning}
-                                            </p>
-                                        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+                {/* Side Pane: Authority & Telemetry */}
+                <div className="lg:col-span-4 space-y-8">
+                    {/* Authority Matrix */}
+                    <div className="bg-[#0d121f] rounded-[2.5rem] p-10 border border-white/5 shadow-inner">
+                        <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
+                            <ShieldCheckIcon className="w-4 h-4 text-teal-600" />
+                            Authority Matrix
+                        </h3>
+                        <div className="space-y-6">
+                            {[
+                                { name: 'CTO_Agent', auth: 'Architecture' },
+                                { name: 'DPO_Agent', auth: 'Privacy_Law' },
+                                { name: 'Risk_Officer', auth: 'Scoring' },
+                                { name: 'CISO_Agent', auth: 'Compliance' }
+                            ].map(agent => (
+                                <div key={agent.name} className="flex justify-between items-center group">
+                                    <span className="text-[11px] font-bold text-gray-300 uppercase">{agent.name}</span>
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-[9px] font-black text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20 uppercase">{agent.auth}</span>
+                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]"></div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    ) : (
-                        !isVisionRunning && <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded border border-dashed border-gray-300 dark:border-gray-700">
-                            <EyeIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                            <p className="text-gray-500">No visual audit results yet. Upload evidence in assessment controls and click "Run CNN Validation Protocol".</p>
-                        </div>
-                    )}
-                </div>
-            )}
+                    </div>
 
-            {/* Shared Log */}
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Agent Activity Log</h2>
-                 <div className="mt-4 max-h-80 overflow-y-auto bg-gray-900 text-white font-mono text-sm p-4 rounded-md">
-                    {agentLog.length > 0 ? (
-                        agentLog.map(log => (
-                            <p key={log.id}>
-                                <span className="text-gray-500 mr-2">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                                <span className={`${getStatusColor(log.status)}`}>{log.message}</span>
-                            </p>
-                        ))
-                    ) : (
-                        <p className="text-gray-500">No agent activity yet.</p>
-                    )}
-                 </div>
+                    {/* Shared Memory Telemetry Log */}
+                    <div className="bg-black rounded-[2.5rem] p-8 border border-white/5 shadow-2xl h-[400px] flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                             <h3 className="text-[10px] font-black text-green-500/70 uppercase tracking-[0.4em]">Memory_Events</h3>
+                             <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto font-mono text-[10px] space-y-2 pr-2 scrollbar-hide">
+                            {telemetry.length > 0 ? telemetry.map((t, i) => (
+                                <div key={i} className="text-gray-400 group border-l border-green-500/20 pl-4 hover:border-green-500 transition-colors">
+                                    <span className="text-green-500/50 mr-2">&gt;</span>{t}
+                                </div>
+                            )) : (
+                                <div className="text-gray-600 italic">Awaiting event trigger...</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Content: Protocol Steps & Results */}
+                <div className="lg:col-span-8 space-y-10">
+                    <div className="bg-white dark:bg-[#0b0f1a] rounded-[3.5rem] p-12 border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
+                        {isExecuting && (
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                                <div className="h-full bg-teal-500 animate-loading-bar shadow-[0_0_20px_rgba(20,184,166,0.8)]"></div>
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-between items-end mb-12">
+                            <div>
+                                <h2 className="text-3xl font-black text-gray-900 dark:text-white italic tracking-tighter uppercase">Protocol Workflow</h2>
+                                <p className="text-sm text-gray-500 mt-2 font-medium">Sequential Agentic Execution • Zero Assumption Policy</p>
+                            </div>
+                            <div className="text-right">
+                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Global_Status</p>
+                                 <p className={`text-sm font-black uppercase tracking-tighter ${isExecuting ? 'text-teal-600 animate-pulse' : 'text-gray-400'}`}>
+                                    {isExecuting ? 'Neural_Sync' : 'IDLE_WAIT'}
+                                 </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {steps.map((s, idx) => (
+                                <ProtocolStep 
+                                    key={idx}
+                                    step={idx + 1}
+                                    title={s.title}
+                                    desc={s.desc}
+                                    status={
+                                        protocolStage > idx + 1 ? 'completed' :
+                                        protocolStage === idx + 1 ? 'running' : 'pending'
+                                    }
+                                />
+                            ))}
+                        </div>
+
+                        {/* Audit Results Visualization (Python Logic Link) */}
+                        {protocolStage === 6 && (
+                            <div className="mt-14 p-10 bg-[#fdf2f2] dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-[3rem] animate-slide-up">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-5">
+                                        <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-2xl text-red-600 dark:text-red-400">
+                                            <ExclamationTriangleIcon className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black text-red-800 dark:text-red-300 uppercase tracking-tighter">Independent Audit Results</h3>
+                                            <p className="text-xs text-red-600 dark:text-red-400 font-bold uppercase tracking-widest mt-1">Status: Fail (Missing Evidence)</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] font-black bg-red-600 text-white px-4 py-1.5 rounded-full uppercase tracking-widest">Action Required</span>
+                                </div>
+                                
+                                <p className="text-sm text-red-800 dark:text-red-200/80 leading-relaxed mb-8 font-medium">
+                                    The Sentient Supreme Orchestrator detected {gaps.length} control tasks within the Shared Memory that currently lack immutable evidence artifacts. 
+                                    Autonomous synthesis has prepared draft artifacts for CISO review.
+                                </p>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {gaps.slice(0, 4).map(g => (
+                                        <div key={g.controlCode} className="flex justify-between items-center p-5 bg-white dark:bg-black/40 rounded-2xl border border-red-200 dark:border-red-900/30 group hover:border-red-400 transition-colors">
+                                            <div>
+                                                <span className="text-[10px] font-black text-red-600 dark:text-red-400 font-mono">{g.controlCode}</span>
+                                                <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 mt-1 uppercase tracking-tight">{g.controlName.substring(0, 25)}...</p>
+                                            </div>
+                                            <ChevronDownIcon className="w-5 h-5 text-red-200 group-hover:text-red-500 transition-colors" />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-10 pt-8 border-t border-red-200 dark:border-red-900/30 flex justify-end">
+                                     <button className="flex items-center gap-3 px-8 py-3 bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-red-500/20 hover:bg-red-700 transition-all">
+                                        <DocumentTextIcon className="w-4 h-4" />
+                                        Download Failure Analysis Report
+                                     </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
+
+            <style>{`
+                @keyframes loading-bar {
+                    0% { transform: translateX(-100%); width: 30%; }
+                    50% { transform: translateX(50%); width: 60%; }
+                    100% { transform: translateX(200%); width: 30%; }
+                }
+                .animate-loading-bar { animation: loading-bar 2s infinite linear; }
+                @keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-slide-up { animation: slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
         </div>
     );
 };

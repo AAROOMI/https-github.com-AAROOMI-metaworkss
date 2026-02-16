@@ -53,11 +53,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className="w-80 bg-white dark:bg-[#0b0f1a] p-5 border-r border-gray-200 dark:border-gray-800 overflow-y-auto hidden md:flex md:flex-col h-full shadow-2xl">
-      {/* Sarah Johnson Controller Section - Maximum Prominence */}
-      <div className="mb-12 flex flex-col items-center pt-10">
-        <div className="relative mb-6">
-            <div className="p-2 rounded-full bg-gradient-to-tr from-teal-400 to-teal-700 shadow-2xl">
-                <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white dark:border-gray-900 shadow-inner">
+      {/* Sarah Johnson Controller Section - Resized to Normal w-24 */}
+      <div className="mb-10 flex flex-col items-center pt-8">
+        <div className="relative mb-4">
+            <div className="p-1.5 rounded-full bg-gradient-to-tr from-teal-400 to-teal-700 shadow-xl">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white dark:border-gray-900 shadow-inner">
                     <img 
                         src={sarahImageUrl} 
                         alt="Sarah Johnson" 
@@ -68,11 +68,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                 </div>
             </div>
-            <span className="absolute bottom-4 right-5 w-7 h-7 bg-green-500 border-4 border-white dark:border-gray-900 rounded-full shadow-lg animate-pulse"></span>
+            <span className="absolute bottom-1 right-2 w-5 h-5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-md animate-pulse"></span>
         </div>
         <div className="text-center">
-            <span className="block font-normal text-gray-900 dark:text-white text-xl tracking-tight">Sarah Johnson</span>
-            <span className="text-[11px] text-teal-600 dark:text-teal-400 uppercase tracking-[0.3em] leading-none mt-1">AI Controller Engine</span>
+            <span className="block font-normal text-gray-900 dark:text-white text-lg tracking-tight">Sarah Johnson</span>
+            <span className="text-[10px] text-teal-600 dark:text-teal-400 uppercase tracking-[0.25em] leading-none mt-0.5">AI Controller Engine</span>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onSetView('dashboard')}
           className={`w-full text-left p-4 rounded-2xl text-[14px] flex items-center transition-all duration-300 ${
             currentView === 'dashboard'
-              ? 'bg-teal-600 text-white shadow-2xl scale-[1.05]'
+              ? 'bg-teal-600 text-white shadow-2xl scale-[1.02]'
               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
         >
@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Step 2: Agentic Team (Moved from Step 5) */}
+        {/* Step 2: Agentic Team */}
         <div className="space-y-2">
           <button onClick={() => toggleStep(2)} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
             <div className="flex items-center gap-5">
@@ -155,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Step 5: Awareness (Moved from Step 2) */}
+        {/* Step 5: Awareness */}
         <div className="space-y-2">
           <button onClick={() => toggleStep(5)} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
             <div className="flex items-center gap-5">

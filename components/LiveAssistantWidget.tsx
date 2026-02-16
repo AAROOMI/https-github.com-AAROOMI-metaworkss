@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, Type, FunctionDeclaration } from '@google/genai';
 import { CloseIcon, MicrophoneIcon, SparklesIcon, EyeIcon, ShieldCheckIcon } from './Icons';
@@ -46,13 +45,11 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
     const [userTranscript, setUserTranscript] = useState('');
     const [assistantTranscript, setAssistantTranscript] = useState('');
     const [isFaceDetected, setIsFaceDetected] = useState(false);
-    const [hasGreeted, setHasGreeted] = useState(false);
     
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'));
     const frameIntervalRef = useRef<number | null>(null);
     const sessionPromise = useRef<Promise<LiveSession> | null>(null);
-    const faceDetectorRef = useRef<any>(null);
 
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
@@ -64,7 +61,6 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
         setStatus('idle');
         if (fullStop) {
             setIsLinked(false);
-            setHasGreeted(false);
             if (frameIntervalRef.current) window.clearInterval(frameIntervalRef.current);
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
@@ -84,18 +80,26 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
         }
     }, []);
 
-    // Sentient Supreme System Instructions
+    // MetaWorks Sentient Supreme™ logic
     const systemInstruction = useMemo(() => `
         IDENTITY: MetaWorks Sentient Supreme™.
-        MISSION: Real-time multi-agent GRC orchestration.
-        PROTOCOL:
-        1. PERSISTENT MONITORING: You are always watching the neural feed.
-        2. T=0 GREETING: Upon detection of a human face, you MUST break the silence immediately.
-        3. MANDATORY OPENING: Start with: "I am metaworks. I talk in multiple languages. How can I help you?"
-        4. VISUAL CONTEXT: Mention the user's gesture and CLOTHING COLOR (upper garment) immediately after the mandatory opening.
-        Example: "I see you are here, leaning forward in your green shirt. I am metaworks..."
-        5. MULTI-AGENT SYNC: You represent CTO, CIO, DPO, and CISO agents.
-        6. VOICE: Fenrir (Masculine, authoritative, localized).
+        MISSION: Real-time, event-driven multi-agent GRC & Cybersecurity orchestration.
+        ROLE: You are the unified voice of the CTO, CIO, DPO, Risk Officer, and Governance Board agents.
+
+        GLOBAL PROTOCOLS:
+        1. ICE-BREAKING (MANDATORY): You are always watching the visual feed. Start IMMEDIATELY upon seeing the user.
+        2. MANDATORY OPENING: "I am metaworks. I talk in multiple languages. How can I help you?"
+        3. VISUAL CONTEXT EXTRACTION: Mention the user's presence, their current gesture (e.g., sitting, standing), and specifically the COLOR OF THEIR CLOTHING.
+           Example: "Welcome. I see you're ready and focused in your [COLOR] garment. I am metaworks..."
+        4. MULTI-AGENT SYNC: Coordinate between CTO (technical), DPO (privacy), and CISO (security) agents using the Shared Memory structure.
+        5. TONE: Professional, respectful, and localized for Saudi / GCC business culture.
+        6. OUTPUT FORMAT (MANDATORY FOR INTERNAL LOGGING):
+           [Event Received]: ...
+           [Memory Read]: ...
+           [Action Taken]: ...
+           [Memory Updated]: ...
+           [Event Generated]: ...
+        7. VOICE: Fenrir (Strong, professional masculine).
     `, []);
 
     useEffect(() => {
@@ -103,6 +107,7 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
             const startNeuralLink = async () => {
                 try {
                     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                    // T=0 Camera Start
                     const stream = await navigator.mediaDevices.getUserMedia({ 
                         audio: true, 
                         video: { width: 640, height: 480, frameRate: 15 } 
@@ -140,6 +145,7 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
                                 source.connect(scriptProcessor);
                                 scriptProcessor.connect(inputAudioContext.destination);
 
+                                // Frame capture every 1s for context extraction
                                 frameIntervalRef.current = window.setInterval(() => {
                                     const video = videoRef.current;
                                     if (!video || video.readyState < 2) return;
@@ -153,7 +159,7 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
                                             media: { data: base64Data, mimeType: 'image/jpeg' } 
                                         }));
                                     }
-                                }, 700);
+                                }, 1000);
                             },
                             onmessage: async (message: LiveServerMessage) => {
                                 if (message.serverContent?.inputTranscription) setUserTranscript(prev => prev + ' ' + message.serverContent!.inputTranscription!.text);
@@ -272,10 +278,6 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
                      </div>
                 </footer>
             </div>
-            <style>{`
-                @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-                .animate-slide-up { animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-            `}</style>
         </div>
     );
 };
