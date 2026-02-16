@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { View, VirtualAgent } from '../types';
 import { 
@@ -83,7 +82,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ onNavigate, onTa
             </header>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 items-start">
-                {/* Column 1: Start Here */}
+                {/* Column 1: Onboarding (Step 1) */}
                 <HubColumn title="Onboarding" isStartHere onTitleClick={() => setShowFlow(!showFlow)}>
                     <HubCard label="Admin profile" icon={<UsersIcon className="w-4 h-4"/>} onClick={() => onNavigate('userProfile')} step={1} showStep={showFlow} />
                     {showFlow && <ConnectionArrow />}
@@ -98,31 +97,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ onNavigate, onTa
                     <HubCard label="Document vault" icon={<ClipboardListIcon className="w-4 h-4"/>} onClick={() => onNavigate('documents')} step={5} showStep={showFlow} />
                 </HubColumn>
 
-                {/* Column 2: Security Awareness */}
-                <HubColumn title="Awareness">
-                    <HubCard label="General fundamentals" icon={<GraduationCapIcon className="w-4 h-4"/>} onClick={() => onNavigate('training')} />
-                    <HubCard label="Phishing defense" icon={<GraduationCapIcon className="w-4 h-4"/>} onClick={() => onNavigate('training')} />
-                    <HubCard label="" onClick={() => {}} isEmpty />
-                    <HubCard label="" onClick={() => {}} isEmpty />
-                </HubColumn>
-
-                {/* Column 3: Risk Assessment */}
-                <HubColumn title="Risk lab">
-                    <HubCard label="Identification" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
-                    <HubCard label="Analysis" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
-                    <HubCard label="Treatment" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
-                    <HubCard label="Mitigation" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
-                </HubColumn>
-
-                {/* Column 4: Frameworks */}
-                <HubColumn title="Compliance">
-                    <HubCard label="NCA ECC audit" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('assessment')} />
-                    <HubCard label="PDPL privacy" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('pdplAssessment')} />
-                    <HubCard label="ISO 27001 readiness" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('iso27001Assessment')} />
-                    <HubCard label="SAMA CSF audit" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('samaCsfAssessment')} />
-                </HubColumn>
-
-                {/* Column 5: Virtual Team */}
+                {/* Column 2: Virtual Team (Step 2) */}
                 <HubColumn title="Boardroom">
                     {virtualAgents.slice(0, 4).map(agent => (
                         <HubCard 
@@ -132,15 +107,41 @@ export const MissionControl: React.FC<MissionControlProps> = ({ onNavigate, onTa
                             onClick={() => onTalkToAgent(agent)} 
                         />
                     ))}
+                    <HubCard label="Smart policy AI" icon={<SparklesIcon className="w-4 h-4"/>} onClick={() => onNavigate('complianceAgent')} />
+                </HubColumn>
+
+                {/* Column 3: Risk Assessment (Step 3) */}
+                <HubColumn title="Risk lab">
+                    <HubCard label="Identification" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
+                    <HubCard label="Analysis" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
+                    <HubCard label="Treatment" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
+                    <HubCard label="Mitigation" icon={<ExclamationTriangleIcon className="w-4 h-4"/>} onClick={() => onNavigate('riskAssessment')} />
+                </HubColumn>
+
+                {/* Column 4: Frameworks (Step 4) */}
+                <HubColumn title="Compliance">
+                    <HubCard label="NCA ECC audit" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('assessment')} />
+                    <HubCard label="PDPL privacy" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('pdplAssessment')} />
+                    <HubCard label="ISO 27001 readiness" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('iso27001Assessment')} />
+                    <HubCard label="SAMA CSF audit" icon={<ShieldCheckIcon className="w-4 h-4"/>} onClick={() => onNavigate('samaCsfAssessment')} />
+                </HubColumn>
+
+                {/* Column 5: Awareness (Step 5) */}
+                <HubColumn title="Awareness">
+                    <HubCard label="General fundamentals" icon={<GraduationCapIcon className="w-4 h-4"/>} onClick={() => onNavigate('training')} />
+                    <HubCard label="Phishing defense" icon={<GraduationCapIcon className="w-4 h-4"/>} onClick={() => onNavigate('training')} />
+                    <HubCard label="" onClick={() => {}} isEmpty />
+                    <HubCard label="" onClick={() => {}} isEmpty />
                 </HubColumn>
 
                 {/* Column 6: Operations */}
                 <HubColumn title="Operations">
                     <HubCard label="Connectors" icon={<LinkIcon className="w-4 h-4"/>} onClick={() => onNavigate('integrations')} />
-                    <HubCard label="Smart policy AI" icon={<SparklesIcon className="w-4 h-4"/>} onClick={() => onNavigate('complianceAgent')} />
                     <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                         <HubCard label="Artifact vault" icon={<DocumentIcon className="w-4 h-4"/>} onClick={() => onNavigate('documents')} />
                     </div>
+                    <HubCard label="" onClick={() => {}} isEmpty />
+                    <HubCard label="" onClick={() => {}} isEmpty />
                 </HubColumn>
             </div>
         </div>

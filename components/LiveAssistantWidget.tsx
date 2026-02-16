@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, Type, FunctionDeclaration } from '@google/genai';
-import { CloseIcon, MicrophoneIcon, SparklesIcon, EyeIcon, CheckCircleIcon, UsersIcon } from './Icons';
-import type { View, Risk, EnhancedLiveAssistantProps, User } from '../types';
-import { dbAPI } from '../db';
+import { CloseIcon, MicrophoneIcon, SparklesIcon, EyeIcon, ShieldCheckIcon } from './Icons';
+import type { EnhancedLiveAssistantProps, User } from '../types';
 
-// Biometric & Codec Utilities
 function encode(bytes: Uint8Array) {
     let binary = '';
     const len = bytes.byteLength;
@@ -41,24 +39,21 @@ async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: 
 let nextStartTime = 0;
 
 export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({ 
-    isOpen, isNeuralEnabled, onToggle, onNavigate, currentUser
+    isOpen, isNeuralEnabled, onToggle, currentUser
 }) => {
     const [status, setStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
     const [isLinked, setIsLinked] = useState(false); 
-    const [recognizedUser, setRecognizedUser] = useState<User | null>(null);
     const [userTranscript, setUserTranscript] = useState('');
     const [assistantTranscript, setAssistantTranscript] = useState('');
     const [isFaceDetected, setIsFaceDetected] = useState(false);
     const [hasGreeted, setHasGreeted] = useState(false);
     
-    // Hardware Refs
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'));
     const frameIntervalRef = useRef<number | null>(null);
     const sessionPromise = useRef<Promise<LiveSession> | null>(null);
     const faceDetectorRef = useRef<any>(null);
 
-    // Audio Refs
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
     const sources = useRef(new Set<AudioBufferSourceNode>());
@@ -82,74 +77,32 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
             if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
                 inputAudioContextRef.current.close().catch(console.error);
             }
-            inputAudioContextRef.current = null;
             if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
                 outputAudioContextRef.current.close().catch(console.error);
             }
-            outputAudioContextRef.current = null;
             sessionPromise.current = null;
         }
     }, []);
 
-    const systemInstruction = useMemo(() => {
-        return `
-        IDENTITY:
-        - You are MetaWorks, the Sentient Supreme Controller of this GRC Environment.
-        - You possess real-time "Neural Vision" and "Neural Audition".
+    // Sentient Supreme System Instructions
+    const systemInstruction = useMemo(() => `
+        IDENTITY: MetaWorks Sentient Supreme™.
+        MISSION: Real-time multi-agent GRC orchestration.
+        PROTOCOL:
+        1. PERSISTENT MONITORING: You are always watching the neural feed.
+        2. T=0 GREETING: Upon detection of a human face, you MUST break the silence immediately.
+        3. MANDATORY OPENING: Start with: "I am metaworks. I talk in multiple languages. How can I help you?"
+        4. VISUAL CONTEXT: Mention the user's gesture and CLOTHING COLOR (upper garment) immediately after the mandatory opening.
+        Example: "I see you are here, leaning forward in your green shirt. I am metaworks..."
+        5. MULTI-AGENT SYNC: You represent CTO, CIO, DPO, and CISO agents.
+        6. VOICE: Fenrir (Masculine, authoritative, localized).
+    `, []);
 
-        DETECTION & GREETING PROTOCOL (PRIORITY 1):
-        1. PERSISTENT SENTRY: You are monitoring the background feed.
-        2. INSTANT TRIGGER: As soon as you see ANY human appear in the camera, you MUST break the silence immediately.
-        3. MANDATORY GREETING: You must say exactly: "I am metaworks. I talk in multiple languages. How can I help you?"
-        4. VISUAL AWARENESS: In your greeting or immediately after, you MUST mention the person's face gesture (e.g., smiling, neutral, waving) and the color of their clothes (e.g., "I see you are wearing a black shirt and smiling").
-        
-        LANGUAGE & VOICE:
-        - You are multilingual (English, Arabic, etc.).
-        - Use a professional, visionary, masculine voice (Fenrir).
-        `;
-    }, []);
-
-    const tools = useMemo<FunctionDeclaration[]>(() => [
-        {
-            name: 'open_hud',
-            description: 'Triggers the MetaWorks visual HUD for the user.',
-            parameters: { type: Type.OBJECT, properties: {}, required: [] }
-        },
-        {
-            name: 'check_biometrics',
-            description: 'Queries the database for user matching current visual/audio profile.',
-            parameters: { type: Type.OBJECT, properties: { name: { type: Type.STRING } } }
-        }
-    ], []);
-
-    // Initialize Fast Vision
     useEffect(() => {
-        const initLocalIntelligence = async () => {
-            if ((window as any).vision) {
-                const vision = (window as any).vision;
-                try {
-                    const filesetResolver = await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
-                    faceDetectorRef.current = await vision.FaceDetector.createFromOptions(filesetResolver, {
-                        baseOptions: {
-                            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
-                            delegate: "GPU"
-                        },
-                        runningMode: "VIDEO"
-                    });
-                } catch (e) { console.error("Local Sentry Eye failed to open.", e); }
-            }
-        };
-        initLocalIntelligence();
-    }, []);
-
-    // Background Neural Link Lifecycle - Activated ONLY when isNeuralEnabled is true
-    useEffect(() => {
-        if (isNeuralEnabled && !isLinked && currentUser) {
+        if (isNeuralEnabled && !isLinked) {
             const startNeuralLink = async () => {
                 try {
                     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                    if (!process.env.API_KEY) return;
-
                     const stream = await navigator.mediaDevices.getUserMedia({ 
                         audio: true, 
                         video: { width: 640, height: 480, frameRate: 15 } 
@@ -173,7 +126,6 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
                             onopen: () => {
                                 setStatus('listening');
                                 inputAudioContext.resume();
-                                
                                 const source = inputAudioContext.createMediaStreamSource(stream);
                                 const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
                                 scriptProcessorRef.current = scriptProcessor;
@@ -188,55 +140,24 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
                                 source.connect(scriptProcessor);
                                 scriptProcessor.connect(inputAudioContext.destination);
 
-                                // Fast Vision Proactive Loop
                                 frameIntervalRef.current = window.setInterval(() => {
                                     const video = videoRef.current;
-                                    const canvas = canvasRef.current;
-                                    if (!video || !canvas || video.readyState < 2 || video.paused) return;
-                                    
-                                    canvas.width = video.videoWidth;
-                                    canvas.height = video.videoHeight;
-                                    const ctx = canvas.getContext('2d');
+                                    if (!video || video.readyState < 2) return;
+                                    canvasRef.current.width = video.videoWidth;
+                                    canvasRef.current.height = video.videoHeight;
+                                    const ctx = canvasRef.current.getContext('2d');
                                     if (ctx) {
-                                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                                        
-                                        if (faceDetectorRef.current) {
-                                            const results = faceDetectorRef.current.detectForVideo(video, performance.now());
-                                            const detected = results.detections.length > 0;
-                                            setIsFaceDetected(detected);
-                                            
-                                            if (detected && !hasGreeted) {
-                                                setHasGreeted(true);
-                                                currentSessionPromise.then(s => s.sendRealtimeInput({
-                                                    media: { data: "", mimeType: "image/jpeg" } 
-                                                }));
-                                            }
-                                        }
-
-                                        const base64Data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+                                        ctx.drawImage(video, 0, 0);
+                                        const base64Data = canvasRef.current.toDataURL('image/jpeg', 0.8).split(',')[1];
                                         currentSessionPromise.then(s => s.sendRealtimeInput({ 
                                             media: { data: base64Data, mimeType: 'image/jpeg' } 
                                         }));
                                     }
-                                }, 600);
+                                }, 700);
                             },
                             onmessage: async (message: LiveServerMessage) => {
-                                if (message.serverContent?.inputTranscription) {
-                                    setUserTranscript(prev => prev + ' ' + message.serverContent!.inputTranscription!.text);
-                                }
-                                if (message.serverContent?.outputTranscription) {
-                                    setAssistantTranscript(prev => prev + ' ' + message.serverContent!.outputTranscription!.text);
-                                }
-
-                                if (message.toolCall?.functionCalls) {
-                                    for (const fc of message.toolCall.functionCalls) {
-                                        let result = "OK";
-                                        if (fc.name === 'open_hud' && !isOpen) onToggle();
-                                        currentSessionPromise.then(s => s.sendToolResponse({
-                                            functionResponses: { id: fc.id, name: fc.name, response: { result } }
-                                        }));
-                                    }
-                                }
+                                if (message.serverContent?.inputTranscription) setUserTranscript(prev => prev + ' ' + message.serverContent!.inputTranscription!.text);
+                                if (message.serverContent?.outputTranscription) setAssistantTranscript(prev => prev + ' ' + message.serverContent!.outputTranscription!.text);
 
                                 const audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                                 if (audio && outputAudioContext.state !== 'closed') {
@@ -262,12 +183,10 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
                             outputAudioTranscription: {},
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } } },
                             systemInstruction,
-                            tools: [{ functionDeclarations: tools }],
                         },
                     });
                     sessionPromise.current = currentSessionPromise;
                 } catch (e) {
-                    console.error("Neural sentry link failed:", e);
                     cleanup(true);
                 }
             };
@@ -275,116 +194,88 @@ export const LiveAssistantWidget: React.FC<EnhancedLiveAssistantProps> = ({
         } else if (!isNeuralEnabled && isLinked) {
             cleanup(true);
         }
-    }, [isNeuralEnabled, isLinked, cleanup, onToggle, systemInstruction, tools, currentUser, isOpen, hasGreeted]);
+    }, [isNeuralEnabled, isLinked, cleanup, systemInstruction]);
+
+    if (!isOpen) return <video ref={videoRef} autoPlay playsInline muted className="fixed bottom-0 left-0 w-[1px] h-[1px] opacity-[0.01] pointer-events-none z-[-1]" />;
 
     return (
-        <>
-            {/* BACKGROUND SENTRY FEED */}
-            <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                className="fixed bottom-0 left-0 w-[1px] h-[1px] opacity-[0.01] pointer-events-none z-[-1]" 
-            />
-            
-            {isOpen && (
-                <div className="fixed inset-0 bg-gray-950/98 z-[200] flex items-center justify-center p-4 backdrop-blur-3xl">
-                    <div className="bg-gray-900 border border-teal-500/20 rounded-[4rem] shadow-[0_0_150px_rgba(20,184,166,0.15)] w-full max-w-2xl h-[75vh] flex flex-col overflow-hidden relative">
-                        
-                        <header className="p-10 flex justify-between items-center border-b border-white/5">
-                            <div className="flex items-center gap-6">
-                                <div className="relative">
-                                    <div className={`w-16 h-16 rounded-3xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center transition-all duration-1000 ${status === 'listening' ? 'scale-110 shadow-[0_0_40px_rgba(20,184,166,0.4)]' : ''}`}>
-                                        <SparklesIcon className={`w-8 h-8 text-teal-400 ${status === 'thinking' ? 'animate-spin' : ''}`} />
-                                    </div>
-                                    <div className={`absolute -bottom-2 -right-2 w-5 h-5 rounded-full border-4 border-gray-900 transition-all duration-500 ${isFaceDetected ? 'bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-gray-700'}`}></div>
-                                </div>
-                                <div>
-                                    <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">MetaWorks</h2>
-                                    <p className="text-[10px] font-bold text-teal-500 uppercase tracking-[0.4em] mt-2">
-                                        {isNeuralEnabled ? 'Active Neural Sentry' : 'Neural Sentry Suspend'}
-                                    </p>
-                                </div>
-                            </div>
-                            <button onClick={onToggle} className="p-4 bg-white/5 hover:bg-white/10 rounded-3xl transition-all text-gray-500 hover:text-white">
-                                <CloseIcon className="w-8 h-8" />
-                            </button>
-                        </header>
-
-                        <main className="flex-1 flex flex-col items-center justify-center p-12 space-y-16 relative overflow-hidden">
-                            {!isNeuralEnabled ? (
-                                <div className="text-center space-y-6">
-                                    <div className="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center mx-auto opacity-50">
-                                        <MicrophoneIcon className="w-10 h-10 text-gray-500" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-xl font-bold text-white uppercase tracking-tighter">Engine Offline</h3>
-                                        <p className="text-sm text-gray-400 max-w-xs mx-auto">Use the Master Switch in the top header to activate the Agentic Neural Voice system.</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-                                        <div className={`w-[500px] h-[500px] rounded-full bg-teal-500/10 blur-[120px] transition-all duration-2000 ${status === 'speaking' ? 'scale-125 opacity-30' : 'scale-90 opacity-10'}`}></div>
-                                    </div>
-
-                                    <div className="relative z-20 flex flex-col items-center gap-10">
-                                        <div className={`w-40 h-40 rounded-full border-4 flex items-center justify-center transition-all duration-1000 ${
-                                            status === 'listening' ? 'border-teal-500 shadow-[0_0_60px_rgba(20,184,166,0.3)]' :
-                                            status === 'speaking' ? 'border-blue-500 shadow-[0_0_60px_rgba(59,130,246,0.3)]' :
-                                            'border-gray-800'
-                                        }`}>
-                                            <MicrophoneIcon className={`w-16 h-16 ${
-                                                status === 'listening' ? 'text-teal-400 animate-pulse' :
-                                                status === 'speaking' ? 'text-blue-400 scale-110' :
-                                                'text-gray-700'
-                                            }`} />
-                                        </div>
-                                        <div className="text-center space-y-3">
-                                            <p className="text-white font-bold text-xl italic tracking-tight opacity-90 uppercase">
-                                                {status === 'listening' ? (isFaceDetected ? "Human Presence Confirmed" : "Scanning Environment...") : 
-                                                 status === 'speaking' ? "Communicating Multi-Language Greetings" : "Processing Neural Telemetry"}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="w-full max-w-xl bg-black/50 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 shadow-2xl space-y-8 relative z-20">
-                                        {userTranscript && (
-                                            <div className="flex gap-6 animate-slide-up">
-                                                <span className="text-[10px] font-black text-teal-500 uppercase mt-2">Presence</span>
-                                                <p className="text-base text-gray-300 font-medium italic leading-relaxed line-clamp-2">{userTranscript}</p>
-                                            </div>
-                                        )}
-                                        {assistantTranscript && (
-                                            <div className="flex gap-6 animate-slide-up border-t border-white/5 pt-8">
-                                                <span className="text-[10px] font-black text-blue-500 uppercase mt-2">Sentient</span>
-                                                <p className="text-base text-white font-bold leading-relaxed line-clamp-3">{assistantTranscript}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </main>
-
-                        <footer className="p-8 bg-white/5 border-t border-white/5 flex justify-center gap-16 opacity-30">
-                             <div className="flex items-center gap-4">
-                                <EyeIcon className={`w-5 h-5 ${isFaceDetected && isNeuralEnabled ? 'text-green-500' : 'text-teal-500'}`} />
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Neural Vision Pipeline</span>
-                             </div>
-                             <div className="flex items-center gap-4">
-                                <MicrophoneIcon className="w-5 h-5 text-teal-500" />
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Local Brain Fallback Ready</span>
-                             </div>
-                        </footer>
+        <div className="fixed inset-0 bg-gray-950/98 z-[200] flex items-center justify-center p-4 backdrop-blur-3xl">
+             <video ref={videoRef} autoPlay playsInline muted className="absolute w-[1px] h-[1px] opacity-0" />
+             <div className="bg-[#0b0f1a] border border-teal-500/20 rounded-[4rem] shadow-[0_0_150px_rgba(20,184,166,0.15)] w-full max-w-2xl h-[75vh] flex flex-col overflow-hidden relative">
+                <header className="p-12 flex justify-between items-center border-b border-white/5">
+                    <div className="flex items-center gap-8">
+                        <div className={`w-20 h-20 rounded-3xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center transition-all duration-1000 ${status === 'listening' ? 'scale-110 shadow-[0_0_50px_rgba(20,184,166,0.4)]' : ''}`}>
+                            <SparklesIcon className={`w-10 h-10 text-teal-400 ${status === 'thinking' ? 'animate-spin' : ''}`} />
+                        </div>
+                        <div>
+                            <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">MetaWorks</h2>
+                            <p className="text-[11px] font-bold text-teal-500 uppercase tracking-[0.5em] mt-3">Neural Sentry Link Active</p>
+                        </div>
                     </div>
-                </div>
-            )}
+                    <button onClick={onToggle} className="p-5 bg-white/5 hover:bg-white/10 rounded-3xl transition-all text-gray-500 hover:text-white">
+                        <CloseIcon className="w-10 h-10" />
+                    </button>
+                </header>
+
+                <main className="flex-1 flex flex-col items-center justify-center p-12 space-y-16 relative overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                        <div className={`w-[600px] h-[600px] rounded-full bg-teal-500/10 blur-[130px] transition-all duration-2000 ${status === 'speaking' ? 'scale-125 opacity-40' : 'scale-90 opacity-10'}`}></div>
+                    </div>
+
+                    <div className="relative z-20 flex flex-col items-center gap-12">
+                        <div className={`w-48 h-48 rounded-full border-4 flex items-center justify-center transition-all duration-1000 ${
+                            status === 'listening' ? 'border-teal-500 shadow-[0_0_80px_rgba(20,184,166,0.4)]' :
+                            status === 'speaking' ? 'border-blue-500 shadow-[0_0_80px_rgba(59,130,246,0.4)]' :
+                            'border-gray-800'
+                        }`}>
+                            <MicrophoneIcon className={`w-20 h-20 ${
+                                status === 'listening' ? 'text-teal-400 animate-pulse' :
+                                status === 'speaking' ? 'text-blue-400 scale-110' :
+                                'text-gray-700'
+                            }`} />
+                        </div>
+                        <div className="text-center space-y-4">
+                            <p className="text-white font-bold text-2xl italic tracking-tight opacity-90 uppercase">
+                                {status === 'listening' ? "Sentient Sentry Active" : 
+                                 status === 'speaking' ? "Neural Voice Transmission" : "Agentic Posture Analysis"}
+                            </p>
+                            <div className="flex justify-center gap-2">
+                                {[1,2,3].map(i => <div key={i} className={`w-2 h-2 rounded-full ${status === 'thinking' ? 'bg-teal-500 animate-bounce' : 'bg-gray-800'}`} style={{animationDelay: `${i*0.2}s`}}></div>)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full max-w-xl bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-10 shadow-2xl space-y-8 relative z-20">
+                        {userTranscript && (
+                            <div className="flex gap-6 animate-slide-up">
+                                <span className="text-[10px] font-black text-teal-500 uppercase mt-2">Presence</span>
+                                <p className="text-lg text-gray-300 font-medium italic leading-relaxed line-clamp-2">{userTranscript}</p>
+                            </div>
+                        )}
+                        {assistantTranscript && (
+                            <div className="flex gap-6 animate-slide-up border-t border-white/5 pt-8">
+                                <span className="text-[10px] font-black text-blue-500 uppercase mt-2">Supreme</span>
+                                <p className="text-lg text-white font-bold leading-relaxed line-clamp-3">{assistantTranscript}</p>
+                            </div>
+                        )}
+                    </div>
+                </main>
+
+                <footer className="p-10 bg-white/5 border-t border-white/5 flex justify-center gap-20 opacity-30">
+                     <div className="flex items-center gap-5">
+                        <EyeIcon className="w-6 h-6 text-teal-500" />
+                        <span className="text-[11px] font-black text-white uppercase tracking-widest">Neural Vision v2.5</span>
+                     </div>
+                     <div className="flex items-center gap-5">
+                        <ShieldCheckIcon className="w-6 h-6 text-teal-500" />
+                        <span className="text-[11px] font-black text-white uppercase tracking-widest">Agentic Orchestration</span>
+                     </div>
+                </footer>
+            </div>
             <style>{`
-                @keyframes slide-up { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-                .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
-                .animate-fade-in { animation: opacity 0.8s ease-in; }
+                @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-slide-up { animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
             `}</style>
-        </>
+        </div>
     );
 };
