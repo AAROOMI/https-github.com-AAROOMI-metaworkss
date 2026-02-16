@@ -32,6 +32,57 @@
         -moz-osx-font-smoothing: grayscale;
       }
 
+      /* Sentient Supreme: Galaxy of Stars Animation */
+      @keyframes galaxy-stars {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 100% 100%; }
+      }
+
+      .galaxy-bg {
+        background-image: 
+          radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+          radial-gradient(1.5px 1.5px at 40px 70px, #fff, rgba(0,0,0,0)),
+          radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+          radial-gradient(1px 1px at 90px 40px, #fff, rgba(0,0,0,0)),
+          radial-gradient(1.5px 1.5px at 130px 80px, #fff, rgba(0,0,0,0)),
+          radial-gradient(2px 2px at 160px 120px, #ddd, rgba(0,0,0,0));
+        background-repeat: repeat;
+        background-size: 200px 200px;
+        animation: galaxy-stars 60s linear infinite;
+        opacity: 0.3;
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Glowing Boundary for Fields */
+      @keyframes border-glow-move {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .active-field-glow {
+        position: relative;
+        z-index: 10;
+        border: 2px solid transparent !important;
+        background-clip: padding-box;
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+      }
+
+      .active-field-glow::after {
+        content: '';
+        position: absolute;
+        top: -3px; left: -3px; right: -3px; bottom: -3px;
+        background: linear-gradient(45deg, #14b8a6, #ffffff, #14b8a6, #ffffff);
+        background-size: 400% 400%;
+        z-index: -1;
+        border-radius: 0.8rem;
+        animation: border-glow-move 3s ease infinite;
+        opacity: 1;
+      }
+
       /* Sentient Supreme: Moving Ring Animation with White Glowing Strip */
       @keyframes rotate-ring {
         from { transform: rotate(0deg); }
@@ -170,7 +221,8 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50 dark:bg-gray-900">
+  <body class="bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+    <div class="galaxy-bg"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
