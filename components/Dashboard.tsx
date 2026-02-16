@@ -16,7 +16,7 @@ interface DashboardPageProps {
 }
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
-    <div className={`bg-[#1e293b]/50 dark:bg-[#0f172a]/80 shadow-xl rounded-2xl border border-gray-800/60 p-8 ${className}`}>
+    <div className={`bg-[#1e293b]/50 dark:bg-[#0f172a]/90 shadow-2xl rounded-2xl border border-teal-500/20 p-8 ${className}`}>
         {children}
     </div>
 );
@@ -38,8 +38,8 @@ const GaugeMeter: React.FC<{ percentage: number; label: string; actionLabel?: st
             type: 'doughnut',
             data: {
                 datasets: [{
-                    data: [percentage, 100 - percentage],
-                    backgroundColor: ['#14b8a6', '#334155'],
+                    data: [percentage || 1, 100 - (percentage || 1)],
+                    backgroundColor: ['#14b8a6', '#1e293b'],
                     borderColor: 'transparent',
                     circumference: 180,
                     rotation: -90,
@@ -61,19 +61,19 @@ const GaugeMeter: React.FC<{ percentage: number; label: string; actionLabel?: st
     const isLarge = size === 'large';
 
     return (
-        <Card className={`flex flex-col items-center justify-between ${isLarge ? 'h-64' : 'h-56'} bg-[#111827]/40 border-gray-800/40`}>
-            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] text-center">{label}</h4>
-            <div className={`relative ${isLarge ? 'w-48 h-24' : 'w-32 h-16'} mt-4`}>
+        <Card className={`flex flex-col items-center justify-between ${isLarge ? 'h-64' : 'h-56'} bg-[#111827]/40 border-teal-500/20`}>
+            <h4 className="text-[11px] font-normal text-gray-400 uppercase tracking-[0.25em] text-center">{label}</h4>
+            <div className={`relative ${isLarge ? 'w-52 h-28' : 'w-36 h-20'} mt-4`}>
                 <canvas ref={canvasRef}></canvas>
                 <div className="absolute inset-0 flex items-end justify-center">
-                    <span className={`${isLarge ? 'text-5xl' : 'text-3xl'} font-normal text-white mb-[-4px]`}>
+                    <span className={`${isLarge ? 'text-6xl' : 'text-3xl'} font-normal text-white mb-[-4px]`}>
                         {isNaN(percentage) ? 'N/A' : `${percentage.toFixed(0)}%`}
                     </span>
                 </div>
             </div>
             <button 
                 onClick={onAction}
-                className="mt-6 w-full py-2 border-t border-gray-800 text-[10px] font-bold text-gray-500 tracking-[0.3em] hover:text-teal-400 transition-colors uppercase"
+                className="mt-6 w-full py-2.5 border-t border-gray-800 text-[10px] font-normal text-gray-500 tracking-[0.3em] hover:text-teal-400 transition-colors uppercase"
             >
                 {actionLabel}
             </button>
@@ -85,7 +85,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     const stats = useMemo(() => {
         const approvedCount = repository.filter(doc => doc.status === 'Approved').length;
         const totalControls = allControls.length || 193;
-        const compliance = totalControls > 0 ? (approvedCount / totalControls) * 100 : 1; // Default to 1% for visual match
+        const compliance = totalControls > 0 ? (approvedCount / totalControls) * 100 : 1;
         return { approvedCount, compliance, totalControls };
     }, [repository, allControls]);
 
@@ -97,7 +97,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     };
 
     return (
-        <div className="space-y-12 animate-fade-in pb-12 max-w-7xl mx-auto pt-4">
+        <div className="space-y-12 animate-fade-in pb-12 max-w-7xl mx-auto pt-6 px-4">
             <header>
                 <h1 className="text-3xl font-normal text-white tracking-tight">Compliance Dashboard</h1>
                 <p className="text-sm text-gray-500 font-normal mt-1 opacity-70 italic tracking-wide">Enterprise posture overview for {currentUser?.name}.</p>
@@ -114,49 +114,49 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                 />
 
                 <Card className="flex flex-col justify-between">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Control Coverage</h3>
+                    <h3 className="text-[11px] font-normal text-gray-400 uppercase tracking-[0.25em]">Control Coverage</h3>
                     <div className="mt-4">
-                        <p className="text-5xl font-normal text-white">2%</p>
+                        <p className="text-6xl font-normal text-white">2%</p>
                         <p className="mt-2 text-xs text-gray-500 font-normal italic tracking-wide">4 active controls.</p>
                     </div>
-                    <div className="h-1 bg-gray-800 rounded-full mt-4 overflow-hidden">
-                        <div className="h-full bg-teal-500 w-[2%]"></div>
+                    <div className="h-1.5 bg-gray-800 rounded-full mt-4 overflow-hidden border border-white/5">
+                        <div className="h-full bg-teal-500 w-[2%] shadow-[0_0_10px_rgba(20,184,166,0.5)]"></div>
                     </div>
                 </Card>
 
                 <Card className="flex flex-col justify-between">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Audit Readiness</h3>
+                    <h3 className="text-[11px] font-normal text-gray-400 uppercase tracking-[0.25em]">Audit Readiness</h3>
                     <div className="mt-4">
-                        <p className="text-5xl font-normal text-white">2</p>
+                        <p className="text-6xl font-normal text-white">2</p>
                         <p className="mt-2 text-xs text-gray-500 font-normal italic tracking-wide">Verified artifacts.</p>
                     </div>
-                    <div className="flex gap-1 mt-4">
+                    <div className="flex gap-1.5 mt-4">
                          {[1,2,3,4,5].map(i => (
-                             <div key={i} className={`h-1 flex-1 rounded-full ${i <= 2 ? 'bg-teal-500' : 'bg-gray-800'}`}></div>
+                             <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= 2 ? 'bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.4)]' : 'bg-gray-800'}`}></div>
                          ))}
                     </div>
                 </Card>
 
                 <Card className="flex flex-col justify-between relative overflow-hidden">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">RISK CONCENTRATION</h3>
-                    <div className="flex justify-between items-end mt-6">
+                    <h3 className="text-[11px] font-normal text-gray-400 uppercase tracking-[0.25em]">RISK CONCENTRATION</h3>
+                    <div className="flex justify-between items-end mt-8">
                         <div>
-                            <p className="text-5xl font-normal text-red-500">0</p>
-                            <p className="text-[9px] font-bold text-red-500/60 uppercase tracking-[0.1em] mt-1">CRITICAL</p>
+                            <p className="text-6xl font-normal text-red-500">0</p>
+                            <p className="text-[10px] font-normal text-red-500/60 uppercase tracking-[0.15em] mt-1">CRITICAL</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-5xl font-normal text-orange-400">1</p>
-                            <p className="text-[9px] font-bold text-orange-400/60 uppercase tracking-[0.1em] mt-1">HIGH PRIORITY</p>
+                            <p className="text-6xl font-normal text-orange-400">1</p>
+                            <p className="text-[10px] font-normal text-orange-400/60 uppercase tracking-[0.15em] mt-1">HIGH PRIORITY</p>
                         </div>
                     </div>
                 </Card>
             </div>
 
             {/* Regulatory Frameworks Section */}
-            <div className="space-y-8">
-                <h2 className="text-lg font-normal text-white flex items-center gap-3 tracking-tight">
-                    <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center">
-                        <ShieldCheckIcon className="w-3.5 h-3.5 text-teal-500" />
+            <div className="space-y-8 pt-6">
+                <h2 className="text-xl font-normal text-white flex items-center gap-4 tracking-tight">
+                    <div className="w-6 h-6 rounded-full bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
+                        <ShieldCheckIcon className="w-4 h-4 text-teal-500" />
                     </div>
                     Regulatory Frameworks
                 </h2>

@@ -40,8 +40,8 @@
 
       .ring-wrapper {
         position: relative;
-        width: 34px;
-        height: 34px;
+        width: 38px;
+        height: 38px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -51,10 +51,10 @@
         position: absolute;
         inset: 0;
         border-radius: 50%;
-        padding: 2.5px; /* Stroke width */
+        padding: 2.5px;
         background: conic-gradient(
           #14b8a6 0deg,
-          #14b8a6 260deg,
+          #14b8a6 280deg,
           #ffffff 310deg,
           #ffffff 340deg,
           #14b8a6 360deg
@@ -68,14 +68,14 @@
         -webkit-mask-composite: destination-out;
         mask-composite: exclude;
         animation: rotate-ring 1.5s linear infinite;
-        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+        filter: drop-shadow(0 0 5px rgba(20, 184, 166, 0.8));
       }
 
       .step-number {
         position: relative;
         z-index: 10;
-        font-size: 11px;
-        font-weight: 600 !important;
+        font-size: 13px;
+        font-weight: 400 !important;
         color: #14b8a6;
       }
 
@@ -85,13 +85,45 @@
 
       .active-step-bg {
         position: absolute;
-        inset: 4px;
+        inset: 5px;
         background: #14b8a6;
         border-radius: 50%;
         z-index: 1;
       }
 
-      /* Loading Indicator Styles */
+      /* Active Sub-Category Glowing Effect */
+      .active-function-glow {
+        position: relative;
+        overflow: visible;
+        background: rgba(20, 184, 166, 0.1) !important;
+        box-shadow: 0 0 15px rgba(20, 184, 166, 0.2);
+        border: 1px solid rgba(20, 184, 166, 0.4) !important;
+      }
+
+      .active-function-glow::after {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border-radius: 0.5rem;
+        padding: 1.5px;
+        background: conic-gradient(
+          transparent 0deg,
+          transparent 300deg,
+          #ffffff 330deg,
+          #ffffff 360deg
+        );
+        -webkit-mask: 
+          linear-gradient(#fff 0 0) content-box, 
+          linear-gradient(#fff 0 0);
+        mask: 
+          linear-gradient(#fff 0 0) content-box, 
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: destination-out;
+        mask-composite: exclude;
+        animation: rotate-ring 2s linear infinite;
+        pointer-events: none;
+      }
+
       #loading-indicator {
         display: flex;
         flex-direction: column;
@@ -116,32 +148,6 @@
       @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.6; }
-      }
-
-      /* Shine Animation */
-      @keyframes shine {
-        0% { transform: translateX(-100%) skewX(-15deg); }
-        50% { transform: translateX(100%) skewX(-15deg); }
-        100% { transform: translateX(100%) skewX(-15deg); }
-      }
-      .shine-effect {
-        position: relative;
-        overflow: hidden;
-      }
-      .shine-effect::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          rgba(255, 255, 255, 0) 0%,
-          rgba(255, 255, 255, 0.4) 50%,
-          rgba(255, 255, 255, 0) 100%
-        );
-        animation: shine 3s infinite;
       }
 
       @media print {
