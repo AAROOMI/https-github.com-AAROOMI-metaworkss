@@ -1,0 +1,9 @@
+{
+  "name": "Restructure of Metaworks Cybersecurity GRC Platform V.1",
+  "description": "An interactive web application to browse, search, and understand international cybersecurity frameworks and manage organizational compliance.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

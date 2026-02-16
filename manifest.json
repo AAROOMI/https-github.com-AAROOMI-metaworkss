@@ -1,0 +1,17 @@
+
+{
+  "name": "Metaworks",
+  "short_name": "Metaworks",
+  "description": "An interactive web application to browse, search, and understand the National Cybersecurity Authority's Essential Cybersecurity Controls (ECC) and their implementation guidelines.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#d97706",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

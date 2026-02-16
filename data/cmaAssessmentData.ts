@@ -1,0 +1,135 @@
+
+import type { AssessmentItem } from '../types';
+
+export const cmaAssessmentData: AssessmentItem[] = [
+    {
+        domainCode: "1",
+        domainName: "Governance",
+        subDomainCode: "1.1",
+        subdomainName: "Cybersecurity Governance",
+        controlCode: "CMA-1.1.1",
+        controlName: "Establish a board-level committee responsible for cybersecurity oversight.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "1",
+        domainName: "Governance",
+        subDomainCode: "1.2",
+        subdomainName: "Cybersecurity Policies",
+        controlCode: "CMA-1.2.1",
+        controlName: "Develop and maintain a comprehensive set of cybersecurity policies aligned with CMA requirements.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "2",
+        domainName: "Risk Management",
+        subDomainCode: "2.1",
+        subdomainName: "Risk Assessment",
+        controlCode: "CMA-2.1.1",
+        controlName: "Conduct periodic cybersecurity risk assessments of financial systems and market data.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "3",
+        domainName: "Operations",
+        subDomainCode: "3.1",
+        subdomainName: "Access Control",
+        controlCode: "CMA-3.1.1",
+        controlName: "Implement strong access control measures for trading systems and sensitive financial information.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "3",
+        domainName: "Operations",
+        subDomainCode: "3.2",
+        subdomainName: "Incident Response",
+        controlCode: "CMA-3.2.1",
+        controlName: "Establish and test an incident response plan specifically for market-related cybersecurity incidents.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "3",
+        domainName: "Operations",
+        subDomainCode: "3.3",
+        subdomainName: "Vulnerability Management",
+        controlCode: "CMA-3.3.1",
+        controlName: "Regularly scan and patch vulnerabilities in financial reporting systems.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "3",
+        domainName: "Operations",
+        subDomainCode: "3.4",
+        subdomainName: "Data Protection",
+        controlCode: "CMA-3.4.1",
+        controlName: "Encrypt sensitive investor data at rest and in transit.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "4",
+        domainName: "Cloud Computing",
+        subDomainCode: "4.1",
+        subdomainName: "Cloud Security",
+        controlCode: "CMA-4.1.1",
+        controlName: "Ensure cloud service providers comply with CMA cybersecurity regulations.",
+        currentStatusDescription: "",
+        controlStatus: "Not Implemented",
+        recommendation: "",
+        managementResponse: "",
+        targetDate: ""
+    },
+    {
+        domainCode: "5",
+        domainName: "Cybersecurity Awareness",
+        subDomainCode: "5.1",
+        subdomainName: "Training and Awareness",
+        controlCode: "CMA-5.1.1",
+        controlName: "Conduct regular cybersecurity awareness sessions for all employees and trading authorized persons.",
+        currentStatusDescription: "General IT induction is provided, but no specific cybersecurity awareness program related to market risks exists.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Launch a mandatory annual cybersecurity awareness program covering phishing, insider trading risks, and data protection.",
+        managementResponse: "Agree",
+        targetDate: "Q2 2025"
+    },
+    {
+        domainCode: "5",
+        domainName: "Cybersecurity Awareness",
+        subDomainCode: "5.2",
+        subdomainName: "Social Engineering Testing",
+        controlCode: "CMA-5.2.1",
+        controlName: "Perform periodic social engineering tests (e.g., phishing simulations) to evaluate user awareness.",
+        currentStatusDescription: "No phishing simulations have been conducted to date.",
+        controlStatus: "Not Implemented",
+        recommendation: "Conduct quarterly phishing simulation campaigns and provide remedial training to users who fail.",
+        managementResponse: "Agree",
+        targetDate: "Q3 2025"
+    }
+];
